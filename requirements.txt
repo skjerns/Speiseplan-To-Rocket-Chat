@@ -1,0 +1,10 @@
+pandas
+beautifulsoup4
+requests
+tabulate
+tabula-py
+numpy
+rocketchat_API
+camelot-py[base]
+ghostscript
+PyPDF2==2.12.1
