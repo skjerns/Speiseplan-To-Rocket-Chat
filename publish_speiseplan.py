@@ -220,6 +220,8 @@ def clean(word):
 
 
 def post_speiseplan_to_rocket_chat(speiseplan):
+    assert rocketchat_url, 'ROCKETCHAT_URL missing'
+    assert rocketchat_id and rocketchat_token, 'ID or TOKEN missing'
     # login to the rocket chat server
     rocket = RocketChat(user_id=rocketchat_id,
                         auth_token=rocketchat_token,
