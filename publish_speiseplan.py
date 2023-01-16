@@ -217,6 +217,7 @@ def clean(word):
     these are used for indicating allergenes, we want to filter them out
     """
     tmp = word.replace(',', '')
+    tmp = word.replace(';', '')
     if tmp.isupper() or tmp.isnumeric(): return ''
     return word
 
