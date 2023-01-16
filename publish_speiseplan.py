@@ -247,7 +247,7 @@ def post_speiseplan_to_rocket_chat(speiseplan):
 
     # max. 23 chars long, should fit most smartphone screens
     table = tabulate.tabulate(rows, headers = ['Day', 'Choices'],
-                              tablefmt="fancy_grid", maxcolwidths=[3, 20])
+                              tablefmt="fancy_grid", maxcolwidths=[2, 20])
 
     res = rocket.chat_post_message(f'```\n{table}\n```', channel='Speiseplan')
     print(f'posting to rocket.chat: {res}\n\n{res.content.decode()}')
@@ -256,6 +256,5 @@ def post_speiseplan_to_rocket_chat(speiseplan):
 
 
 if __name__=='__main__':
-
     speiseplan = get_current_speiseplan()
     post_speiseplan_to_rocket_chat(speiseplan)
