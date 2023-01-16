@@ -256,10 +256,10 @@ def post_speiseplan_to_rocket_chat(speiseplan):
     table = tabulate.tabulate(rows, headers = [datetime.datetime.now().strftime('%b'), 'Choices'],
                               tablefmt="fancy_grid", maxcolwidths=[3, 22])
     table = '\n'.join([x[:5] + x[9:] for x in table.split('\n')])
-    return table
 
     res = rocket.chat_post_message(f'```\n{table}\n```', channel='Speiseplan')
     print(f'posting to rocket.chat: {res}\n\n{res.content.decode()}')
+    return table
 
 
 
