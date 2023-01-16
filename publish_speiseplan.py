@@ -208,6 +208,7 @@ def strip(string, tostrip = ['\n', '(', ')', '   ', *range(10)]):
         string = string.replace(str(x), ' ')
     string = ''.join([x for x in string if x.isascii() or x.lower() in 'äüöß'])
     string = string.replace('  ', '')
+    string = string.replace('  ', ';')
     return string
 
 
