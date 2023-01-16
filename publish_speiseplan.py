@@ -19,6 +19,7 @@ import numpy as np
 import datetime
 from pprint import pprint
 from rocketchat_API.rocketchat import RocketChat
+from functools import cache
 
 intra_url = os.environ['INTRA_URL']
 intra_user = os.environ['INTRA_USER']
@@ -28,6 +29,7 @@ rocketchat_url = os.environ.get('ROCKETCHAT_URL')
 rocketchat_id = os.environ.get('ROCKETCHAT_ID')
 rocketchat_token = os.environ.get('ROCKETCHAT_TOKEN')
 
+@cache
 def get_current_speiseplan():
     # default header from Chrome
     headers = {
@@ -201,9 +203,9 @@ def extract_table_tabula(thisweek_url):
     pprint(days)  # print for debugging
     return days
 
-def strip(string, tostrip = ['\n', '(', ')', '   ']):
+def strip(string, tostrip = ['\n', '(', ')', '   ', *range(10)]):
     for x in tostrip:
-        string = string.replace(x, ' ')
+        string = string.replace(str(x), ' ')
     string = ''.join([x for x in string if x.isascii() or x.lower() in 'äüöß'])
     string = string.replace('  ', '')
     return string
@@ -218,7 +220,7 @@ def clean(word):
     if tmp.isupper() or tmp.isnumeric(): return ''
     return word
 
-
+#%%
 def post_speiseplan_to_rocket_chat(speiseplan):
     assert rocketchat_url, 'ROCKETCHAT_URL missing'
     assert rocketchat_id and rocketchat_token, 'ID or TOKEN missing'
@@ -226,15 +228,20 @@ def post_speiseplan_to_rocket_chat(speiseplan):
     rocket = RocketChat(user_id=rocketchat_id,
                         auth_token=rocketchat_token,
                         server_url=f'https://{rocketchat_url}')
-
+    
+    now = datetime.datetime.now()
+    monday = now - datetime.timedelta(days = now.weekday())
+    weekstart = monday.strftime('%d.%m')
+    
     # clean up and put in a nice format
     rows = []
-    for day, (meat, veg) in speiseplan.items():
-        try:
-            day = datetime.datetime.strptime(day, '%d.%m.%Y')
-            day = day.strftime('%a\n%d.%m')
-        except:
-            pass
+    for i, (day, (meat, veg)) in enumerate(speiseplan.items()):
+        # try:
+        #     day = datetime.datetime.strptime(day, '%d.%m.%Y')
+        #     day = day.strftime('%a\n%d.%m')[:2]
+        # except:
+        #     pass
+        day_fmt = (monday + datetime.timedelta(days=i)).strftime(f'{day}\n%d.')
         meat = ' '.join(meat)
         veg = ' '.join(veg)
 
@@ -243,11 +250,13 @@ def post_speiseplan_to_rocket_chat(speiseplan):
         meat = ''.join([x for x in meat if x.isprintable()])
         veg = ''.join([x for x in veg if x.isprintable()])
 
-        rows += [[day, meat], ['' , veg]]
-
+        rows += [[day_fmt + '\n', meat], ['' , veg]]
+    
     # max. 23 chars long, should fit most smartphone screens
-    table = tabulate.tabulate(rows, headers = ['Day', 'Choices'],
-                              tablefmt="fancy_grid", maxcolwidths=[2, 20])
+    table = tabulate.tabulate(rows, headers = [datetime.datetime.now().strftime('%b'), 'Choices'],
+                              tablefmt="fancy_grid", maxcolwidths=[3, 22])
+    table = '\n'.join([x[:5] + x[9:] for x in table.split('\n')])
+    return table
 
     res = rocket.chat_post_message(f'```\n{table}\n```', channel='Speiseplan')
     print(f'posting to rocket.chat: {res}\n\n{res.content.decode()}')
@@ -256,5 +265,7 @@ def post_speiseplan_to_rocket_chat(speiseplan):
 
 
 if __name__=='__main__':
+
     speiseplan = get_current_speiseplan()
-    post_speiseplan_to_rocket_chat(speiseplan)
+    table = post_speiseplan_to_rocket_chat(speiseplan)
+    print(table)
