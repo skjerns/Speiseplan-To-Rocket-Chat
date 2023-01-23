@@ -27,7 +27,7 @@ jobs:
           INTRA_URL: ${{ secrets.INTRA_URL }}
           INTRA_PASS: ${{ secrets.INTRA_PASS }}
           INTRA_USER: ${{ secrets.INTRA_USER }}
-          ROCKETCHAT_ID: ${{ secrets.ROCKETCHAT_USERID }}
+          ROCKETCHAT_ID: ${{ secrets.ROCKETCHAT_ID }}
           ROCKETCHAT_TOKEN: ${{ secrets.ROCKETCHAT_TOKEN }}
           ROCKETCHAT_URL: ${{ secrets.ROCKETCHAT_URL }}
 
