@@ -113,8 +113,9 @@ def extract_table_camelot(thisweek_url):
     wochentage = iter(['Mo', 'Di', 'Mi', 'Do', 'Fr'])
 
     speiseplan = {}
-    for row in rows:
-        if sum([len(x.replace('Heute hausgemacht', '')) for x in row])<5:
+    for i, row in enumerate(rows):
+        row = [x for x in row]
+        if row_is_empty(row):
             continue
         else:
             ncol = len(row)
@@ -203,13 +204,21 @@ def extract_table_tabula(thisweek_url):
     pprint(days)  # print for debugging
     return days
 
-def strip(string, tostrip = ['\n', '(', ')', '   ', *range(10)]):
+def strip(string, tostrip = ['\n', '(', ')', ',', ';', '   ', *range(10)]):
     for x in tostrip:
         string = string.replace(str(x), ' ')
     string = ''.join([x for x in string if x.isascii() or x.lower() in 'äüöß'])
-    string = string.replace('  ', '')
-    string = string.replace('  ', ';')
+    string = string.replace('  ', ' ')
     return string
+
+
+def row_is_empty(row):
+    """"""
+    text = ' '.join(row)
+    text = ''.join([x for x in text if x.isascii()])
+    text = text.lower().replace('heute hausgemacht', '')
+    if len(text)>5: return False
+    return True
 
 
 def clean(word):
@@ -230,11 +239,11 @@ def post_speiseplan_to_rocket_chat(speiseplan):
     rocket = RocketChat(user_id=rocketchat_id,
                         auth_token=rocketchat_token,
                         server_url=f'https://{rocketchat_url}')
-    
+
     now = datetime.datetime.now()
     monday = now - datetime.timedelta(days = now.weekday())
     weekstart = monday.strftime('%d.%m')
-    
+
     # clean up and put in a nice format
     rows = []
     for i, (day, (meat, veg)) in enumerate(speiseplan.items()):
@@ -253,7 +262,7 @@ def post_speiseplan_to_rocket_chat(speiseplan):
         veg = ''.join([x for x in veg if x.isprintable()])
 
         rows += [[day_fmt + '\n', meat], ['' , veg]]
-    
+
     # max. 23 chars long, should fit most smartphone screens
     table = tabulate.tabulate(rows, headers = [datetime.datetime.now().strftime('%b'), 'Choices'],
                               tablefmt="fancy_grid", maxcolwidths=[3, 22])
