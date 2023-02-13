@@ -21,25 +21,34 @@ from pprint import pprint
 from rocketchat_API.rocketchat import RocketChat
 from functools import cache
 
-intra_url = os.environ['INTRA_URL']
-intra_user = os.environ['INTRA_USER']
-intra_pass = os.environ['INTRA_PASS']
+INTRA_URL = os.environ['INTRA_URL']
+INTRA_USER = os.environ['INTRA_USER']
+INTRA_PASS = os.environ['INTRA_PASS']
 
-rocketchat_url = os.environ.get('ROCKETCHAT_URL')
-rocketchat_id = os.environ.get('ROCKETCHAT_ID')
-rocketchat_token = os.environ.get('ROCKETCHAT_TOKEN')
+ROCKETCHAT_URL = os.environ.get('ROCKETCHAT_URL')
+ROCKETCHAT_ID = os.environ.get('ROCKETCHAT_ID')
+ROCKETCHAT_TOKEN = os.environ.get('ROCKETCHAT_TOKEN')
+
+def parse_date(string):
+    formats = ['%d.%m.%Y', '%d.%m.%y']
+    for fmt in formats:
+        try:
+            return datetime.datetime.strptime(string, fmt)
+        except:
+            print(f'{string} did not match {fmt}')
+    raise ValueError(f'{string} did not match any formats: {formats}')
 
 @cache
 def get_current_speiseplan():
     # default header from Chrome
     headers = {
-        'authority': intra_url,
+        'authority': INTRA_URL,
         'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
         'accept-language': 'en-GB,en;q=0.9',
         'cache-control': 'max-age=0',
         'dnt': '1',
-        'origin': f'https://{intra_url}',
-        'referer': f'https://{intra_url}/',
+        'origin': f'https://{INTRA_URL}',
+        'referer': f'https://{INTRA_URL}/',
         'sec-ch-ua': '"Chromium";v="108", "Not?A_Brand";v="8"',
         'sec-ch-ua-mobile': '?0',
         'sec-ch-ua-platform': '"Windows"',
@@ -52,8 +61,8 @@ def get_current_speiseplan():
     }
 
     logindata = {
-        'user': intra_user,
-        'pass': intra_pass,
+        'user': INTRA_USER,
+        'pass': INTRA_PASS,
         'submit': 'Anmelden',
         'logintype': 'login',
         'pid': '2@f21d4061d06b7761f48ff3d692a191ed496bb068',
@@ -61,9 +70,9 @@ def get_current_speiseplan():
         'tx_felogin_pi1[noredirect]': '0',
     }
 
-    print('url_intra is', intra_url)
+    print('url_intra is', INTRA_URL)
 
-    login_response = requests.post(f'https://{intra_url}/', headers=headers,
+    login_response = requests.post(f'https://{INTRA_URL}/', headers=headers,
                                    data=logindata)
 
     # login successful? keep cookies to show we are logged in
@@ -71,7 +80,7 @@ def get_current_speiseplan():
     cookies = login_response.cookies
 
     # retrieve current speiseplan
-    speiseplan_response = requests.get(f'https://{intra_url}/zi/cafeteria/wochenspeiseplan',
+    speiseplan_response = requests.get(f'https://{INTRA_URL}/zi/cafeteria/wochenspeiseplan',
                             cookies=cookies, headers=headers, data=logindata)
     assert speiseplan_response.ok
 
@@ -86,7 +95,7 @@ def get_current_speiseplan():
     finddate = lambda x: re.findall(r'\d+[.]\d+[.]\d+', x, re.IGNORECASE)
     startingdates = [finddate(pdf['href'].split('/')[-1]) for pdf in pdfs_cafeteria]
     startingdates = [['01.06.2000', '06.06.2000'] if dates==[] else dates for dates in startingdates ]
-    startingdates = [datetime.datetime.strptime(date[0], '%d.%m.%Y') for date in startingdates]
+    startingdates = [parse_date(date[0]) for date in startingdates]
 
     weeks = [date.isocalendar().week for date in startingdates]
     thisweek = datetime.datetime.now().isocalendar().week
@@ -97,7 +106,7 @@ def get_current_speiseplan():
         pdf_url = pdfs_cafeteria[-1].attrs['href']
 
     # download PDF
-    thisweek_url = f'https://{intra_url}/{pdf_url}'
+    thisweek_url = f'https://{INTRA_URL}/{pdf_url}'
 
     try:
         speiseplan = extract_table_camelot(thisweek_url)
@@ -233,12 +242,12 @@ def clean(word):
 
 #%%
 def post_speiseplan_to_rocket_chat(speiseplan):
-    assert rocketchat_url, 'ROCKETCHAT_URL missing'
-    assert rocketchat_id and rocketchat_token, 'ID or TOKEN missing'
+    assert ROCKETCHAT_URL, 'ROCKETCHAT_URL missing'
+    assert ROCKETCHAT_ID and ROCKETCHAT_TOKEN, 'ID or TOKEN missing'
     # login to the rocket chat server
-    rocket = RocketChat(user_id=rocketchat_id,
-                        auth_token=rocketchat_token,
-                        server_url=f'https://{rocketchat_url}')
+    rocket = RocketChat(user_id=ROCKETCHAT_ID,
+                        auth_token=ROCKETCHAT_TOKEN,
+                        server_url=f'https://{ROCKETCHAT_URL}')
 
     now = datetime.datetime.now()
     monday = now - datetime.timedelta(days = now.weekday())
