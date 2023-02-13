@@ -21,13 +21,16 @@ from pprint import pprint
 from rocketchat_API.rocketchat import RocketChat
 from functools import cache
 
-INTRA_URL = os.environ['INTRA_URL']
-INTRA_USER = os.environ['INTRA_USER']
-INTRA_PASS = os.environ['INTRA_PASS']
+try:
+    from env import *
+except:
+    INTRA_URL = os.environ['INTRA_URL']
+    INTRA_USER = os.environ['INTRA_USER']
+    INTRA_PASS = os.environ['INTRA_PASS']
 
-ROCKETCHAT_URL = os.environ.get('ROCKETCHAT_URL')
-ROCKETCHAT_ID = os.environ.get('ROCKETCHAT_ID')
-ROCKETCHAT_TOKEN = os.environ.get('ROCKETCHAT_TOKEN')
+    ROCKETCHAT_URL = os.environ.get('ROCKETCHAT_URL')
+    ROCKETCHAT_ID = os.environ.get('ROCKETCHAT_ID')
+    ROCKETCHAT_TOKEN = os.environ.get('ROCKETCHAT_TOKEN')
 
 def parse_date(string):
     formats = ['%d.%m.%Y', '%d.%m.%y']
