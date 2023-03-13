@@ -228,7 +228,9 @@ def row_is_empty(row):
     """"""
     text = ' '.join(row)
     text = ''.join([x for x in text if x.isascii()])
-    text = text.lower().replace('heute hausgemacht', '')
+    text = ''.join([x for x in text if x.isalpha()])
+    text = text.lower().replace('hausgemacht', '')
+    text = text.lower().replace('heute', '')
     if len(text)>5: return False
     return True
 
