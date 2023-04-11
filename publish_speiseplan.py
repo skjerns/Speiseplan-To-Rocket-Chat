@@ -94,7 +94,7 @@ def get_current_speiseplan_url():
 
     # extract link to PDF of current speiseplan
     html = speiseplan_response.content.decode()
-    soup = bs4.BeautifulSoup(html, features="lxml")
+    soup = bs4.BeautifulSoup(html)
     # first item is for wards, second one is for cafeteria
     pdfs = soup.findAll('a', text='Mittagessen')
     pdfs_cafeteria = [pdf for pdf in pdfs if 'cafe' in pdf.attrs['href'].lower()]
