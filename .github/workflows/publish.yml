@@ -30,4 +30,6 @@ jobs:
           ROCKETCHAT_ID: ${{ secrets.ROCKETCHAT_ID }}
           ROCKETCHAT_TOKEN: ${{ secrets.ROCKETCHAT_TOKEN }}
           ROCKETCHAT_URL: ${{ secrets.ROCKETCHAT_URL }}
+          IMGBB_KEY: ${{ secrets.IMGBB_KEY }}
+
 
