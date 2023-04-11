@@ -8,3 +8,5 @@ rocketchat_API
 camelot-py[base]
 ghostscript
 PyPDF2==2.12.1
+pymupdf
+imgbbpy

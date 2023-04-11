@@ -13,10 +13,13 @@ import bs4
 import tabulate
 import tabula # pip install tabula-py
 import camelot # pip install camelot-py
+import ghostscript # pip install ghostcript
 from io import BytesIO
 import pandas as pd
 import numpy as np
 import datetime
+import fitz # pip install pymupdf
+import imgbbpy
 from pprint import pprint
 from rocketchat_API.rocketchat import RocketChat
 from functools import cache
@@ -32,6 +35,8 @@ except:
     ROCKETCHAT_ID = os.environ.get('ROCKETCHAT_ID')
     ROCKETCHAT_TOKEN = os.environ.get('ROCKETCHAT_TOKEN')
 
+    IMGBB_KEY = os.environ.get('IMGBB_KEY')
+
 def parse_date(string):
     formats = ['%d.%m.%Y', '%d.%m.%y']
     for fmt in formats:
@@ -42,7 +47,7 @@ def parse_date(string):
     raise ValueError(f'{string} did not match any formats: {formats}')
 
 @cache
-def get_current_speiseplan():
+def get_current_speiseplan_url():
     # default header from Chrome
     headers = {
         'authority': INTRA_URL,
@@ -89,11 +94,11 @@ def get_current_speiseplan():
 
     # extract link to PDF of current speiseplan
     html = speiseplan_response.content.decode()
-    soup = bs4.BeautifulSoup(html)
+    soup = bs4.BeautifulSoup(html, features="lxml")
     # first item is for wards, second one is for cafeteria
     pdfs = soup.findAll('a', text='Mittagessen')
-    pdfs_cafeteria = [pdf for pdf in pdfs if not 'station' in pdf.attrs['href'].lower()]
-    assert len(pdfs_cafeteria)>0, 'no cafeteria speiseplaene found'
+    pdfs_cafeteria = [pdf for pdf in pdfs if 'cafe' in pdf.attrs['href'].lower()]
+    assert len(pdfs_cafeteria), 'no cafeteria speiseplaene found'
 
     finddate = lambda x: re.findall(r'\d+[.]\d+[.]\d+', x, re.IGNORECASE)
     startingdates = [finddate(pdf['href'].split('/')[-1]) for pdf in pdfs_cafeteria]
@@ -110,12 +115,7 @@ def get_current_speiseplan():
 
     # download PDF
     thisweek_url = f'https://{INTRA_URL}/{pdf_url}'
-
-    try:
-        speiseplan = extract_table_camelot(thisweek_url)
-    except:
-        speiseplan = extract_table_tabula(thisweek_url)
-    return speiseplan
+    return thisweek_url
 
 
 def extract_table_camelot(thisweek_url):
@@ -128,8 +128,10 @@ def extract_table_camelot(thisweek_url):
     for i, row in enumerate(rows):
         row = [x for x in row]
         if row_is_empty(row):
+            print(i, row)
             continue
         else:
+            print(i, row)
             ncol = len(row)
             meat = row[ncol-2]
             vegg = row[ncol-1]
@@ -153,6 +155,17 @@ def extract_table_camelot(thisweek_url):
     return speiseplan
 
 
+def extract_image(thisweek_url):
+    response = requests.get(thisweek_url)
+    assert response.ok
+    f = BytesIO(response.content)
+    doc = fitz.open(stream=f)
+    page = doc.load_page(0)  # number of page
+    pix = page.get_pixmap()
+    pix.save('speiseplan.png')
+    doc.close()
+    return 'speiseplan.png'
+
 def extract_table_tabula(thisweek_url):
     response = requests.get(thisweek_url)
     assert response.ok
@@ -161,7 +174,7 @@ def extract_table_tabula(thisweek_url):
     f = BytesIO(response.content)
 
     # extract table with menu from the PDF using tabula
-    df = tabula.read_pdf(f, pages='1', multiple_tables=False)[0]
+    df = tabula.read_pdf(f, pages='1', multiple_tables=True)
 
     # some cleanup
     rows = list([[y.replace('□', '') if isinstance(y, str) else y for y in x] for _,x in df.iterrows()])
@@ -246,7 +259,9 @@ def clean(word):
     return word
 
 #%%
-def post_speiseplan_to_rocket_chat(speiseplan):
+
+
+def post_speiseplan_ascii_to_rocket_chat(speiseplan):
     assert ROCKETCHAT_URL, 'ROCKETCHAT_URL missing'
     assert ROCKETCHAT_ID and ROCKETCHAT_TOKEN, 'ID or TOKEN missing'
     # login to the rocket chat server
@@ -287,10 +302,36 @@ def post_speiseplan_to_rocket_chat(speiseplan):
     return table
 
 
+def post_speiseplan_image_to_rocket_chat(speiseplan_png):
+    assert ROCKETCHAT_URL, 'ROCKETCHAT_URL missing'
+    assert ROCKETCHAT_ID and ROCKETCHAT_TOKEN, 'ID or TOKEN missing'
+    assert IMGBB_KEY, 'IMGBB_KEY missing'
+    rocket = RocketChat(user_id=ROCKETCHAT_ID,
+                        auth_token=ROCKETCHAT_TOKEN,
+                        server_url=f'https://{ROCKETCHAT_URL}')
+    imgbb_client = imgbbpy.SyncClient(IMGBB_KEY)
+    upload = imgbb_client.upload(file=speiseplan_png, expiration=60*60*25*7)
+
+    now = datetime.datetime.now().strftime('%d. %b')
+    res = rocket.chat_post_message(f'Woche startet am {now}. Auf den Plan klicken um Details zu sehen.',
+                         channel='Speiseplan',
+                         attachments=[{"image_url": upload.url}]
+                         )
+    print(f'posting to rocket.chat: {res}\n\n{res.content.decode()}')
 
 
 if __name__=='__main__':
 
-    speiseplan = get_current_speiseplan()
-    table = post_speiseplan_to_rocket_chat(speiseplan)
-    print(table)
+    thisweek_url = get_current_speiseplan_url()
+    png_file = extract_image(thisweek_url)
+    post_speiseplan_image_to_rocket_chat(png_file)
+        # try:
+        #     speiseplan = extract_table_camelot(thisweek_url)
+        # except:
+        #     speiseplan = extract_table_tabula(thisweek_url)
+        # return speiseplan
+
+    # if isinstance(table, str):
+    #     table = post_speiseplan_ascii_to_rocket_chat(speiseplan)
+    #     print(table)
+    # else:
