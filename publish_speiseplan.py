@@ -13,7 +13,7 @@ import bs4
 import tabulate
 import tabula # pip install tabula-py
 import camelot # pip install camelot-py
-import ghostscript # pip install ghostcript
+#import ghostscript # pip install ghostcript
 from io import BytesIO
 import pandas as pd
 import numpy as np
