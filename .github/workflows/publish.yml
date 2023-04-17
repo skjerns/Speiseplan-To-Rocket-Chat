@@ -17,8 +17,8 @@ jobs:
         with:
           python-version: 3.9
           cache: 'pip'
-      - name: Install ghostscript
-        run: sudo apt-get install ghostscript python3-tk
+      #- name: Install ghostscript
+      #  run: sudo apt-get install ghostscript python3-tk
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Run
