@@ -310,7 +310,7 @@ def post_speiseplan_image_to_rocket_chat(speiseplan_png):
                         auth_token=ROCKETCHAT_TOKEN,
                         server_url=f'https://{ROCKETCHAT_URL}')
     imgbb_client = imgbbpy.SyncClient(IMGBB_KEY)
-    upload = imgbb_client.upload(file=speiseplan_png, expiration=60*60*25*7)
+    upload = imgbb_client.upload(file=speiseplan_png, expiration=60*60*24*31)
 
     now = datetime.datetime.now().strftime('%d. %b')
     res = rocket.chat_post_message(f'Woche startet am {now}. Auf den Plan klicken um Details zu sehen.',
