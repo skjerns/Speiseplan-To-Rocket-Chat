@@ -96,12 +96,13 @@ def get_current_speiseplan_url():
     html = speiseplan_response.content.decode()
     soup = bs4.BeautifulSoup(html)
     # first item is for wards, second one is for cafeteria
-    pdfs = soup.findAll('a', text='Mittagskarte')
-    pdfs_cafeteria = [pdf for pdf in pdfs if 'cafe' in pdf.attrs['href'].lower()]
+    links = soup.findAll('a', href=True)
+    pdfs = [link.attrs['href'] for link in links if link.attrs['href'].endswith('pdf')]
+    pdfs_cafeteria = [pdf for pdf in pdfs if 'cafe' in pdf.lower()]
     assert len(pdfs_cafeteria), 'no cafeteria speiseplaene found'
 
     finddate = lambda x: re.findall(r'\d+[.]\d+[.]\d+', x, re.IGNORECASE)
-    startingdates = [finddate(pdf['href'].split('/')[-1]) for pdf in pdfs_cafeteria]
+    startingdates = [finddate(pdf.split('/')[-1]) for pdf in pdfs_cafeteria]
     startingdates = [['01.06.2000', '06.06.2000'] if dates==[] else dates for dates in startingdates ]
     startingdates = [parse_date(date[0]) for date in startingdates]
 
@@ -109,7 +110,7 @@ def get_current_speiseplan_url():
     thisweek = datetime.datetime.now().isocalendar().week
 
     if thisweek in weeks:
-        pdf_url = pdfs_cafeteria[weeks.index(thisweek)].attrs['href']
+        pdf_url = pdfs_cafeteria[weeks.index(thisweek)]
     else:
         pdf_url = pdfs_cafeteria[-1].attrs['href']
 
