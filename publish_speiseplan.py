@@ -37,6 +37,7 @@ except:
 
     IMGBB_KEY = os.environ.get('IMGBB_KEY')
 
+
 def parse_date(string):
     formats = ['%d.%m.%Y', '%d.%m.%y']
     for fmt in formats:
@@ -46,8 +47,11 @@ def parse_date(string):
             print(f'{string} did not match {fmt}')
     raise ValueError(f'{string} did not match any formats: {formats}')
 
+glob = {}
+
 @cache
 def get_current_speiseplan_url():
+
     # default header from Chrome
     headers = {
         'authority': INTRA_URL,
@@ -86,6 +90,7 @@ def get_current_speiseplan_url():
     # login successful? keep cookies to show we are logged in
     assert login_response.ok
     cookies = login_response.cookies
+    glob['cookies'] = cookies
 
     # retrieve current speiseplan
     speiseplan_response = requests.get(f'https://{INTRA_URL}/zi/cafeteria/wochenspeiseplan',
@@ -157,7 +162,7 @@ def extract_table_camelot(thisweek_url):
 
 
 def extract_image(thisweek_url):
-    response = requests.get(thisweek_url)
+    response = requests.get(thisweek_url, cookies=glob['cookies'])
     assert response.ok
     f = BytesIO(response.content)
     doc = fitz.open(stream=f)
@@ -322,17 +327,7 @@ def post_speiseplan_image_to_rocket_chat(speiseplan_png):
 
 
 if __name__=='__main__':
-
+    asd
     thisweek_url = get_current_speiseplan_url()
     png_file = extract_image(thisweek_url)
     post_speiseplan_image_to_rocket_chat(png_file)
-        # try:
-        #     speiseplan = extract_table_camelot(thisweek_url)
-        # except:
-        #     speiseplan = extract_table_tabula(thisweek_url)
-        # return speiseplan
-
-    # if isinstance(table, str):
-    #     table = post_speiseplan_ascii_to_rocket_chat(speiseplan)
-    #     print(table)
-    # else:
