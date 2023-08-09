@@ -327,7 +327,7 @@ def post_speiseplan_image_to_rocket_chat(speiseplan_png):
 
 
 if __name__=='__main__':
-    asd
+
     thisweek_url = get_current_speiseplan_url()
     png_file = extract_image(thisweek_url)
     post_speiseplan_image_to_rocket_chat(png_file)
