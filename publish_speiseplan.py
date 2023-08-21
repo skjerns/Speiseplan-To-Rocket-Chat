@@ -10,10 +10,6 @@ import os
 import re
 import requests
 import bs4
-import tabulate
-import tabula # pip install tabula-py
-import camelot # pip install camelot-py
-#import ghostscript # pip install ghostcript
 from io import BytesIO
 import pandas as pd
 import numpy as np
@@ -52,34 +48,39 @@ glob = {}
 @cache
 def get_current_speiseplan_url():
 
-    # default header from Chrome
     headers = {
-        'authority': INTRA_URL,
-        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-        'accept-language': 'en-GB,en;q=0.9',
-        'cache-control': 'max-age=0',
-        'dnt': '1',
-        'origin': f'https://{INTRA_URL}',
-        'referer': f'https://{INTRA_URL}/',
-        'sec-ch-ua': '"Chromium";v="108", "Not?A_Brand";v="8"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Windows"',
-        'sec-fetch-dest': 'document',
-        'sec-fetch-mode': 'navigate',
-        'sec-fetch-site': 'same-origin',
-        'sec-fetch-user': '?1',
-        'upgrade-insecure-requests': '1',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
-    }
+            'authority': INTRA_URL,
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'accept-language': 'en-GB,en;q=0.9,de;q=0.8',
+            'cache-control': 'max-age=0',
+            'content-type': 'application/x-www-form-urlencoded',
+            # 'cookie': 'PHPSESSID=fs1ktkpjq3uhrqrs4mda7rf6uf',
+            'dnt': '1',
+                'origin': f'https://{INTRA_URL}',
+                'referer': f'https://{INTRA_URL}/',
+            'sec-ch-ua': '"Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114", "Vivaldi";v="6.1"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Linux"',
+            'sec-fetch-dest': 'document',
+            'sec-fetch-mode': 'navigate',
+            'sec-fetch-site': 'same-origin',
+            'sec-fetch-user': '?1',
+            'upgrade-insecure-requests': '1',
+            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+        }
 
     logindata = {
+        '__referrer[@extension]': 'Felogin',
+        '__referrer[@controller]': 'Login',
+        '__referrer[@action]': 'login',
+        '__referrer[arguments]': 'YTowOnt9c82d6f44b8d0aa36e33546bc21692ef52ab8c9a7',
+        '__referrer[@request]': '{"@extension":"Felogin","@controller":"Login","@action":"login"}3114811a4666319daaddd2295a089fc35d1f932c',
+        '__trustedProperties': '{"user":1,"pass":1,"submit":1,"logintype":1,"pid":1}846697f7fef81d94ede603f45978ce8f3d2a55d3',
         'user': INTRA_USER,
         'pass': INTRA_PASS,
         'submit': 'Anmelden',
         'logintype': 'login',
         'pid': '2@f21d4061d06b7761f48ff3d692a191ed496bb068',
-        'redirect_url': '',
-        'tx_felogin_pi1[noredirect]': '0',
     }
 
     print('url_intra is', INTRA_URL)
@@ -90,6 +91,7 @@ def get_current_speiseplan_url():
     # login successful? keep cookies to show we are logged in
     assert login_response.ok
     cookies = login_response.cookies
+    assert len(cookies)>0, 'no cookies, login failed?'
     glob['cookies'] = cookies
 
     # retrieve current speiseplan
@@ -103,7 +105,7 @@ def get_current_speiseplan_url():
     # first item is for wards, second one is for cafeteria
     links = soup.findAll('a', href=True)
     pdfs = [link.attrs['href'] for link in links if link.attrs['href'].endswith('pdf')]
-    pdfs_cafeteria = [pdf for pdf in pdfs if 'cafe' in pdf.lower()]
+    pdfs_cafeteria = [pdf for pdf in pdfs if 'caf' in pdf.lower()]
     assert len(pdfs_cafeteria), 'no cafeteria speiseplaene found'
 
     finddate = lambda x: re.findall(r'\d+[.]\d+[.]\d+', x, re.IGNORECASE)
@@ -125,6 +127,7 @@ def get_current_speiseplan_url():
 
 
 def extract_table_camelot(thisweek_url):
+    import camelot # pip install camelot-py
     table = camelot.read_pdf(thisweek_url)[0]
     rows = [x for _,x in table.df.iterrows()]
 
@@ -173,6 +176,7 @@ def extract_image(thisweek_url):
     return 'speiseplan.png'
 
 def extract_table_tabula(thisweek_url):
+    import tabula # pip install tabula-py
     response = requests.get(thisweek_url)
     assert response.ok
 
@@ -268,6 +272,7 @@ def clean(word):
 
 
 def post_speiseplan_ascii_to_rocket_chat(speiseplan):
+    import tabulate
     assert ROCKETCHAT_URL, 'ROCKETCHAT_URL missing'
     assert ROCKETCHAT_ID and ROCKETCHAT_TOKEN, 'ID or TOKEN missing'
     # login to the rocket chat server
