@@ -95,7 +95,7 @@ def get_current_speiseplan_url():
     glob['cookies'] = cookies
 
     # retrieve current speiseplan
-    speiseplan_response = requests.get(f'https://{INTRA_URL}/zi/cafeteria/wochenspeiseplan',
+    speiseplan_response = requests.get(f'https://{INTRA_URL}/zi/cafeteria/speisekarte-cafeteria',
                             cookies=cookies, headers=headers, data=logindata)
     assert speiseplan_response.ok
 
@@ -103,7 +103,7 @@ def get_current_speiseplan_url():
     html = speiseplan_response.content.decode()
     soup = bs4.BeautifulSoup(html)
     # first item is for wards, second one is for cafeteria
-    links = soup.findAll('a', href=True)
+    links = soup.findAll(href=True)
     pdfs = [link.attrs['href'] for link in links if link.attrs['href'].endswith('pdf')]
     pdfs_cafeteria = [pdf for pdf in pdfs if 'caf' in pdf.lower()]
     assert len(pdfs_cafeteria), 'no cafeteria speiseplaene found'
