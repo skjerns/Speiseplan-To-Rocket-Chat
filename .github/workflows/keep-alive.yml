@@ -1,4 +1,4 @@
-name: Github Action with a cronjob trigger
+name: keep alive
 on:
   schedule:
     - cron: "0 1 * * *"
