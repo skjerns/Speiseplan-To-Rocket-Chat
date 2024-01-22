@@ -118,7 +118,10 @@ def get_current_speiseplan_url():
     if thisweek in weeks:
         pdf_url = pdfs_cafeteria[weeks.index(thisweek)]
     else:
-        pdf_url = pdfs_cafeteria[-1].attrs['href']
+        try:
+            pdf_url = pdfs_cafeteria[-1].attrs['href']
+        except AttributeError:
+            pdf_url = pdfs_cafeteria[-1]
 
     # download PDF
     thisweek_url = f'https://{INTRA_URL}/{pdf_url}'
