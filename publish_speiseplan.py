@@ -118,7 +118,10 @@ def get_current_speiseplan_url():
     if thisweek in weeks:
         pdf_url = pdfs_cafeteria[weeks.index(thisweek)]
     else:
-        pdf_url = pdfs_cafeteria[-1].attrs['href']
+        try:
+            pdf_url = pdfs_cafeteria[-1].attrs['href']
+        except AttributeError:
+            pdf_url = pdfs_cafeteria[-1]
 
     # download PDF
     thisweek_url = f'https://{INTRA_URL}/{pdf_url}'
@@ -323,7 +326,7 @@ def post_speiseplan_image_to_rocket_chat(speiseplan_png):
     upload = imgbb_client.upload(file=speiseplan_png, expiration=60*60*24*31)
 
     now = datetime.datetime.now().strftime('%d. %b')
-    res = rocket.chat_post_message(f'Woche startet am {now}. Auf den Plan klicken um Details zu sehen. [[see source code](https://github.com/skjerns/Speiseplan-To-Rocket-Chat/tree/main)]',
+    res = rocket.chat_post_message(f'Woche startet am {now}. Auf den Plan klicken um Details zu sehen.',
                          channel='Speiseplan',
                          attachments=[{"image_url": upload.url}]
                          )
