@@ -2,7 +2,7 @@ name: Publish Speiseplan to Rocket.Chat
 
 on:
   schedule:
-    - cron: "30 4 * * 1"
+    - cron: "30 8 * * 1"
   workflow_dispatch:
 
 jobs:
