@@ -15,6 +15,7 @@ import numpy as np
 import datetime
 import imgbbpy
 import ftplib
+import ftputil
 from pprint import pprint
 from rocketchat_API.rocketchat import RocketChat
 from functools import cache
@@ -353,6 +354,8 @@ def post_speiseplan_image_to_rocket_chat(url):
     print(f'posting to rocket.chat: {res}\n\n{res.content.decode()}')
 
 def test_ftp():
+    with ftputil.FTPHost(FTP_URL, FTP_USER, FTP_PASS) as host:
+        names = host.listdir(host.curdir)
     # test if ftp works correctly 	
     ftp = ftplib.FTP('test.rebex.net')
     ftp.login('demo', 'password')
@@ -360,7 +363,7 @@ def test_ftp():
 
 if __name__=='__main__':
     test_ftp()
-    
+    asd
     thisweek_url = get_current_speiseplan_url()
     png_file = extract_image(thisweek_url)
     url = upload_to_imagebb(png_file)

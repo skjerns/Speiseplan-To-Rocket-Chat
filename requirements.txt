@@ -4,6 +4,7 @@ numpy
 rocketchat_API
 pymupdf
 imgbbpy
+ftputil
 
 # outdated requiremtents
 # camelot-py[base]
