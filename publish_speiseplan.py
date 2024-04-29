@@ -13,7 +13,8 @@ import bs4
 from io import BytesIO
 import numpy as np
 import datetime
-import imgbbpy
+#import imgbbpy
+import ftplib
 from pprint import pprint
 from rocketchat_API.rocketchat import RocketChat
 from functools import cache
@@ -30,6 +31,9 @@ except:
     ROCKETCHAT_TOKEN = os.environ.get('ROCKETCHAT_TOKEN')
 
     IMGBB_KEY = os.environ.get('IMGBB_KEY')
+    FTP_URL = os.environ.get('FTP_URL')
+    FTP_USER = os.environ.get('FTP_USER')
+    FTP_PASS = os.environ.get('FTP_PASS')
 
 
 def parse_date(string):
@@ -89,7 +93,7 @@ def get_current_speiseplan_url():
     # login successful? keep cookies to show we are logged in
     assert login_response.ok
     cookies = login_response.cookies
-    assert len(cookies)>0, 'no cookies, login failed?'
+    assert len(cookies)>0, 'no cookies, password wrong?'
     glob['cookies'] = cookies
     # retrieve current speiseplan
     speiseplan_response = requests.get(f'https://{INTRA_URL}/zi/cafeteria/speisekarte-cafeteria',
@@ -172,9 +176,10 @@ def extract_image(thisweek_url):
     doc = fitz.open(stream=f)
     page = doc.load_page(0)  # number of page
     pix = page.get_pixmap()
-    pix.save('speiseplan.png')
+    filename = datetime.datetime.now().strftime('%Y-%m-%d.png')
+    pix.save(filename)
     doc.close()
-    return 'speiseplan.png'
+    return filename
 
 def extract_table_tabula(thisweek_url):
     import tabula # pip install tabula-py
@@ -314,21 +319,31 @@ def post_speiseplan_ascii_to_rocket_chat(speiseplan):
     print(f'posting to rocket.chat: {res}\n\n{res.content.decode()}')
     return table
 
+def upload_to_imagebb(speiseplan_png):
+    imgbb_client = imgbbpy.SyncClient(IMGBB_KEY)
+    upload = imgbb_client.upload(file=speiseplan_png, expiration=60*60*24*31)
+    return upload.url
 
-def post_speiseplan_image_to_rocket_chat(speiseplan_png):
+def upload_to_ftp(speiseplan_png):
+    session = ftplib.FTP(FTP_URL, FTP_USER, FTP_PASS)
+    with open(speiseplan_png,'rb') as file:                  # file to send
+        session.storbinary(f'STOR {speiseplan_png}', file)     # send the file
+    file.close()                                    # close file and FTP
+    session.quit()
+    return f'https://{FTP_URL}/speiseplan/{speiseplan_png}'
+
+def post_speiseplan_image_to_rocket_chat(url):
     assert ROCKETCHAT_URL, 'ROCKETCHAT_URL missing'
     assert ROCKETCHAT_ID and ROCKETCHAT_TOKEN, 'ID or TOKEN missing'
     assert IMGBB_KEY, 'IMGBB_KEY missing'
     rocket = RocketChat(user_id=ROCKETCHAT_ID,
                         auth_token=ROCKETCHAT_TOKEN,
                         server_url=f'https://{ROCKETCHAT_URL}')
-    imgbb_client = imgbbpy.SyncClient(IMGBB_KEY)
-    upload = imgbb_client.upload(file=speiseplan_png, expiration=60*60*24*31)
 
     now = datetime.datetime.now().strftime('%d. %b')
     res = rocket.chat_post_message(f'Woche startet am {now}. Auf den Plan klicken um Details zu sehen. (beep bop 🤖 this was posted by a [bot](https://github.com/skjerns/Speiseplan-To-Rocket-Chat))',
                          channel='Speiseplan',
-                         attachments=[{"image_url": upload.url}]
+                         attachments=[{"image_url": url}]
                          )
     print(f'posting to rocket.chat: {res}\n\n{res.content.decode()}')
 
@@ -337,4 +352,5 @@ if __name__=='__main__':
 
     thisweek_url = get_current_speiseplan_url()
     png_file = extract_image(thisweek_url)
-    post_speiseplan_image_to_rocket_chat(png_file)
+    url = upload_to_ftp(png_file)
+    # post_speiseplan_image_to_rocket_chat(url)
