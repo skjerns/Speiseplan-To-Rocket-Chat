@@ -14,7 +14,6 @@ from io import BytesIO
 import pandas as pd
 import numpy as np
 import datetime
-import fitz # pip install pymupdf
 import imgbbpy
 from pprint import pprint
 from rocketchat_API.rocketchat import RocketChat
@@ -169,6 +168,7 @@ def extract_table_camelot(thisweek_url):
 def extract_image(thisweek_url):
     response = requests.get(thisweek_url, cookies=glob['cookies'])
     assert response.ok
+    import fitz # pip install pymupdf
     f = BytesIO(response.content)
     doc = fitz.open(stream=f)
     page = doc.load_page(0)  # number of page
