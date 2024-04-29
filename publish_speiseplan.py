@@ -353,19 +353,19 @@ def post_speiseplan_image_to_rocket_chat(url):
                          )
     print(f'posting to rocket.chat: {res}\n\n{res.content.decode()}')
 
-def test_ftp():
-    # first check public ftp
-    ftp = ftplib.FTP_TLS('test.rebex.net')
-    ftp.login('demo', 'password')
-    ftp.quit()
+# def test_ftp():
+#     # first check public ftp
+#     ftp = ftplib.FTP_TLS('test.rebex.net')
+#     ftp.login('demo', 'password')
+#     ftp.quit()
     
-    # then check our own works
-    ftp = ftplib.FTP_TLS(FTP_URL)
-    ftp.login(FTP_USER, FTP_PASS)
-    ftp.quit()
+#     # then check our own works
+#     ftp = ftplib.FTP_TLS(FTP_URL)
+#     ftp.login(FTP_USER, FTP_PASS)
+#     ftp.quit()
 
 if __name__=='__main__':
-    test_ftp()
+    # test_ftp()
     
     thisweek_url = get_current_speiseplan_url()
     png_file = extract_image(thisweek_url)
