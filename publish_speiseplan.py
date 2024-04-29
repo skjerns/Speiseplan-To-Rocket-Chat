@@ -325,14 +325,16 @@ def upload_to_imagebb(speiseplan_png):
     return upload.url
 
 def upload_to_ftp(speiseplan_png):
-    session = ftplib.FTP(FTP_URL, FTP_USER, FTP_PASS)
-    curr_files = session.nlst()
+    ftp = ftplib.FTP(FTP_URL)
+    ftp.login(FTP_USER, FTP_PASS)
+    ftp.cwd('/')    
+    curr_files = ftp.nlst()
     print('#'*10, '\n', curr_files)
 
     with open(speiseplan_png,'rb') as file:                  # file to send
-        session.storbinary(f'STOR {speiseplan_png}', file)   # send the file
+        ftp.storbinary(f'STOR {speiseplan_png}', file)   # send the file
     file.close()                                    # close file and FTP
-    session.quit()
+    ftp.quit()
     return f'https://{FTP_URL}/speiseplan/{speiseplan_png}'
 
 def post_speiseplan_image_to_rocket_chat(url):
