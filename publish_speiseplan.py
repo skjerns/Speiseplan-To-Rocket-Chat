@@ -326,7 +326,7 @@ def upload_to_imagebb(speiseplan_png):
     return upload.url
 
 def upload_to_ftp(speiseplan_png):
-    ftp = ftplib.FTP(FTP_URL)
+    ftp = ftplib.FTP_TLS(FTP_URL)
     ftp.login(FTP_USER, FTP_PASS)
     ftp.cwd('/')    
     curr_files = ftp.nlst()
@@ -354,16 +354,19 @@ def post_speiseplan_image_to_rocket_chat(url):
     print(f'posting to rocket.chat: {res}\n\n{res.content.decode()}')
 
 def test_ftp():
-    with ftputil.FTPHost(FTP_URL, FTP_USER, FTP_PASS) as host:
-        names = host.listdir(host.curdir)
-    # test if ftp works correctly 	
-    ftp = ftplib.FTP('test.rebex.net')
+    # first check public ftp
+    ftp = ftplib.FTP_TLS('test.rebex.net')
     ftp.login('demo', 'password')
+    ftp.quit()
+    
+    # then check our own works
+    ftp = ftplib.FTP_TLS(FTP_URL)
+    ftp.login(FTP_USER, FTP_PASS)
     ftp.quit()
 
 if __name__=='__main__':
     test_ftp()
-    asd
+    
     thisweek_url = get_current_speiseplan_url()
     png_file = extract_image(thisweek_url)
     url = upload_to_imagebb(png_file)
