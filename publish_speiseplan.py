@@ -11,7 +11,6 @@ import re
 import requests
 import bs4
 from io import BytesIO
-import pandas as pd
 import numpy as np
 import datetime
 import imgbbpy
@@ -181,6 +180,7 @@ def extract_table_tabula(thisweek_url):
     import tabula # pip install tabula-py
     response = requests.get(thisweek_url)
     assert response.ok
+    import pandas as pd
 
     # dont save PDF, just put into memory
     f = BytesIO(response.content)

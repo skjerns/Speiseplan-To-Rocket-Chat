@@ -1,4 +1,4 @@
-pandas
+# pandas
 beautifulsoup4
 requests
 # tabulate
@@ -8,5 +8,5 @@ rocketchat_API
 # camelot-py[base]
 # ghostscript
 # PyPDF2==2.12.1
-# pymupdf
+pymupdf
 imgbbpy
