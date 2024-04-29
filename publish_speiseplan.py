@@ -13,7 +13,7 @@ import bs4
 from io import BytesIO
 import numpy as np
 import datetime
-#import imgbbpy
+import imgbbpy
 import ftplib
 from pprint import pprint
 from rocketchat_API.rocketchat import RocketChat
@@ -363,5 +363,5 @@ if __name__=='__main__':
     
     thisweek_url = get_current_speiseplan_url()
     png_file = extract_image(thisweek_url)
-    url = upload_to_ftp(png_file)
-    # post_speiseplan_image_to_rocket_chat(url)
+    url = upload_to_imagebb(png_file)
+    post_speiseplan_image_to_rocket_chat(url)
