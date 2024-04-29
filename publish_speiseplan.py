@@ -351,11 +351,14 @@ def post_speiseplan_image_to_rocket_chat(url):
                          )
     print(f'posting to rocket.chat: {res}\n\n{res.content.decode()}')
 
-
-if __name__=='__main__':	
+def test_ftp():
+    # test if ftp works correctly 	
     ftp = ftplib.FTP('test.rebex.net')
     ftp.login('demo', 'password')
+    ftp.quit()
 
+if __name__=='__main__':
+    test_ftp()
     
     thisweek_url = get_current_speiseplan_url()
     png_file = extract_image(thisweek_url)
