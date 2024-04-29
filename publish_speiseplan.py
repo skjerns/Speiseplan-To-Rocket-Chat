@@ -325,6 +325,7 @@ def upload_to_imagebb(speiseplan_png):
     return upload.url
 
 def upload_to_ftp(speiseplan_png):
+    ftp = ftplib.FTP(FTP_URL)
     ftp.login(FTP_USER, FTP_PASS)
     ftp.cwd('/')    
     curr_files = ftp.nlst()
