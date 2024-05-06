@@ -14,8 +14,7 @@ from io import BytesIO
 import numpy as np
 import datetime
 import imgbbpy
-import ftplib
-import ftputil
+import socket
 from pprint import pprint
 from rocketchat_API.rocketchat import RocketChat
 from functools import cache
@@ -325,18 +324,73 @@ def upload_to_imagebb(speiseplan_png):
     upload = imgbb_client.upload(file=speiseplan_png, expiration=60*60*24*31)
     return upload.url
 
-def upload_to_ftp(speiseplan_png):
-    ftp = ftplib.FTP_TLS(FTP_URL)
-    ftp.login(FTP_USER, FTP_PASS)
-    ftp.cwd('/')    
-    curr_files = ftp.nlst()
-    print('#'*10, '\n', curr_files)
 
-    with open(speiseplan_png,'rb') as file:                  # file to send
-        ftp.storbinary(f'STOR {speiseplan_png}', file)   # send the file
-    file.close()                                    # close file and FTP
-    ftp.quit()
+def send_cmd(cmd, sock):
+    sock.send(cmd.encode() + b'\r\n')
+    response = sock.recv(4096).decode()
+    return response
+
+def upload_file_ftp(speiseplan_png):
+    # Connect to FTP server
+    with socket.create_connection((FTP_URL, 21)) as sock:
+        response = sock.recv(4096).decode()
+        print(response)
+
+        # Send username
+        response = send_cmd("USER " + FTP_USER, sock)
+        print(response)
+
+        # Send password
+        response = send_cmd("PASS " + FTP_PASS, sock)
+        print(response)
+
+        # Set passive mode
+        response = send_cmd("PASV", sock)
+        print(response)
+
+        # Extract passive mode connection details
+        parts = response.split(',')
+        host = '.'.join(parts[-4:-1])
+        port = (int(parts[-2]) << 8) + int(parts[-1])
+
+        # Connect to passive mode data socket
+        with socket.create_connection((host, port)) as data_sock:
+            # Send STOR command
+            response = send_cmd("STOR " + os.path.basename(speiseplan_png), sock)
+            print(response)
+
+            # Open the local file in binary mode
+            with open(speiseplan_png, 'rb') as file:
+                # Read and send file data
+                data = file.read(4096)
+                while data:
+                    data_sock.send(data)
+                    data = file.read(4096)
+
+            # Close data socket
+            data_sock.close()
+
+        # Close control socket
+        sock.close()
+
+    print("File uploaded successfully.")
     return f'https://{FTP_URL}/speiseplan/{speiseplan_png}'
+
+def upload_file_ftp_sh(local_file_path):
+    import subprocess
+    # Check if the local file path is provided
+    if not local_file_path:
+        print("Error: Local file path is missing.")
+        return
+
+    # Call the shell script with the local file path as an argument
+    try:
+        script = os.path.dirname(__file__) + '/upload_file_ftp.sh'
+        print(subprocess.check_output([script, local_file_path]))
+        print("File uploaded successfully.")
+    except subprocess.CalledProcessError as e:
+        print("Error:", e)
+    return  f'https://{FTP_URL}/speiseplan/{local_file_path}'
 
 def post_speiseplan_image_to_rocket_chat(url):
     assert ROCKETCHAT_URL, 'ROCKETCHAT_URL missing'
@@ -369,5 +423,8 @@ if __name__=='__main__':
     
     thisweek_url = get_current_speiseplan_url()
     png_file = extract_image(thisweek_url)
-    url = upload_to_imagebb(png_file)
-    post_speiseplan_image_to_rocket_chat(url)
+    # url = upload_to_imagebb(png_file)
+    url = upload_file_ftp_sh(png_file)
+
+    url = upload_file_ftp(png_file)
+    # post_speiseplan_image_to_rocket_chat(url)
