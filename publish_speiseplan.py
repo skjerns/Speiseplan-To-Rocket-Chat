@@ -412,7 +412,7 @@ def post_speiseplan_image_to_rocket_chat(url):
 #     ftp = ftplib.FTP_TLS('test.rebex.net')
 #     ftp.login('demo', 'password')
 #     ftp.quit()
-    
+
 #     # then check our own works
 #     ftp = ftplib.FTP_TLS(FTP_URL)
 #     ftp.login(FTP_USER, FTP_PASS)
@@ -420,11 +420,10 @@ def post_speiseplan_image_to_rocket_chat(url):
 
 if __name__=='__main__':
     # test_ftp()
-    
+
     thisweek_url = get_current_speiseplan_url()
     png_file = extract_image(thisweek_url)
-    # url = upload_to_imagebb(png_file)
-    url = upload_file_ftp_sh(png_file)
-
-    url = upload_file_ftp(png_file)
-    # post_speiseplan_image_to_rocket_chat(url)
+    url = upload_to_imagebb(png_file)
+    # url = upload_file_ftp_sh(png_file)
+    # url = upload_file_ftp(png_file)
+    post_speiseplan_image_to_rocket_chat(url)
