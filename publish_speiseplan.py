@@ -423,6 +423,7 @@ if __name__=='__main__':
 
     thisweek_url = get_current_speiseplan_url()
     png_file = extract_image(thisweek_url)
+
     url = upload_to_imagebb(png_file)
     # url = upload_file_ftp_sh(png_file)
     # url = upload_file_ftp(png_file)
