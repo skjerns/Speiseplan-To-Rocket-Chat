@@ -18,6 +18,7 @@ import socket
 from pprint import pprint
 from rocketchat_API.rocketchat import RocketChat
 from functools import cache
+from PIL import Image
 
 try:
     from env import *
@@ -180,6 +181,13 @@ def extract_image(thisweek_url):
     pix.save(filename)
     doc.close()
     return filename
+
+def crop_image(png_file):
+    image = Image.open(png_file)
+    week = image.crop([180, 125, 340, 150])
+    cropped = image.crop([35, 223, 557, 775])
+    cropped.paste(week, box=[150, 0])
+    cropped.save(png_file)
 
 def extract_table_tabula(thisweek_url):
     import tabula # pip install tabula-py
@@ -401,11 +409,13 @@ def post_speiseplan_image_to_rocket_chat(url):
                         server_url=f'https://{ROCKETCHAT_URL}')
 
     now = datetime.datetime.now().strftime('%d. %b')
-    res = rocket.chat_post_message(f'Woche startet am {now}. Auf den Plan klicken um Details zu sehen. (beep bop 🤖 this was posted by a [bot](https://github.com/skjerns/Speiseplan-To-Rocket-Chat))',
-                         channel='Speiseplan',
-                         attachments=[{"image_url": url}]
+    res = rocket.chat_post_message(f'Woche startet am {now}. Auf den Plan klicken um Details zu sehen. (beep bop 🤖 this was posted by a bot)\n\n{url}',
+                                   channel='Speiseplan',
+                                   # alias='SpeiseplanBot',
+                                    # previewUrls=[url]
                          )
     print(f'posting to rocket.chat: {res}\n\n{res.content.decode()}')
+    
 
 # def test_ftp():
 #     # first check public ftp
@@ -423,7 +433,7 @@ if __name__=='__main__':
 
     thisweek_url = get_current_speiseplan_url()
     png_file = extract_image(thisweek_url)
-
+    # crop_image(png_file)
     url = upload_to_imagebb(png_file)
     # url = upload_file_ftp_sh(png_file)
     # url = upload_file_ftp(png_file)
