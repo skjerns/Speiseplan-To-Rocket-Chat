@@ -4,7 +4,7 @@ numpy
 rocketchat_API
 pymupdf
 imgbbpy
-
+pillow
 
 # outdated requiremtents
 # camelot-py[base]
