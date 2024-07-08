@@ -40,7 +40,7 @@ jobs:
 
       - name: Commit and push PNG
         run: |
-          git add /speiseplaene/*
+          git add ./speiseplaene/*
           git commit -m 'Add recent speiseplan'
           git push
         env:
