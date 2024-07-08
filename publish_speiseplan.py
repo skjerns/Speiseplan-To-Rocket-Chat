@@ -97,7 +97,7 @@ def get_current_speiseplan_url():
     assert len(cookies)>0, 'no cookies, password wrong?'
     glob['cookies'] = cookies
     # retrieve current speiseplan
-    speiseplan_response = requests.get(f'https://{INTRA_URL}/zi/cafeteria/speisekarte-cafeteria',
+    speiseplan_response = requests.get(f'https://{INTRA_URL}/zi/cafeteria',
                             cookies=cookies, headers=headers, data=logindata)
     assert speiseplan_response.ok
 
