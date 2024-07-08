@@ -177,7 +177,8 @@ def extract_image(thisweek_url):
     doc = fitz.open(stream=f)
     page = doc.load_page(0)  # number of page
     pix = page.get_pixmap()
-    filename = datetime.datetime.now().strftime('%Y-%m-%d.png')
+    os.makedirs('speiseplaene', exist_ok=True)
+    filename = datetime.datetime.now().strftime('./speiseplaene/%Y-%m-%d.png')
     pix.save(filename)
     doc.close()
     return filename
@@ -338,6 +339,10 @@ def send_cmd(cmd, sock):
     response = sock.recv(4096).decode()
     return response
 
+def get_github_url(png_file):
+    base_url = 'https://raw.githubusercontent.com/skjerns/Speiseplan-To-Rocket-Chat/main/speiseplaene'
+    return f'{base_url}/{os.path.basename(png_file)}'
+
 def upload_file_ftp(speiseplan_png):
     # Connect to FTP server
     with socket.create_connection((FTP_URL, 21)) as sock:
@@ -434,7 +439,8 @@ if __name__=='__main__':
     thisweek_url = get_current_speiseplan_url()
     png_file = extract_image(thisweek_url)
     # crop_image(png_file)
-    url = upload_to_imagebb(png_file)
+    url = get_github_url(png_file)
+    # url = upload_to_imagebb(png_file)
     # url = upload_file_ftp_sh(png_file)
     # url = upload_file_ftp(png_file)
     post_speiseplan_image_to_rocket_chat(url)
