@@ -21,6 +21,7 @@ from pprint import pprint
 from rocketchat_API.rocketchat import RocketChat
 from functools import cache
 from PIL import Image
+from subprocess import check_output, STDOUT, CalledProcessError
 
 try:
     from env import *
@@ -29,14 +30,16 @@ except:
     INTRA_USER = os.environ['INTRA_USER']
     INTRA_PASS = os.environ['INTRA_PASS']
 
-    ROCKETCHAT_URL = os.environ.get('ROCKETCHAT_URL')
-    ROCKETCHAT_ID = os.environ.get('ROCKETCHAT_ID')
-    ROCKETCHAT_TOKEN = os.environ.get('ROCKETCHAT_TOKEN')
+    ROCKETCHAT_URL = os.environ['ROCKETCHAT_URL']
+    ROCKETCHAT_ID = os.environ['ROCKETCHAT_ID']
+    ROCKETCHAT_TOKEN = os.environ['ROCKETCHAT_TOKEN']
 
-    IMGBB_KEY = os.environ.get('IMGBB_KEY')
-    FTP_URL = os.environ.get('FTP_URL')
-    FTP_USER = os.environ.get('FTP_USER')
-    FTP_PASS = os.environ.get('FTP_PASS')
+    IMGBB_KEY = os.environ['IMGBB_KEY']
+    FTP_URL = os.environ['FTP_URL']
+    FTP_USER = os.environ['FTP_USER']
+    FTP_PASS = os.environ['FTP_PASS']
+    GITHUB_TOKEN = os.environ['GITHUB_TOKEN']
+
 
 
 def parse_date(string):
@@ -342,14 +345,22 @@ def send_cmd(cmd, sock):
     return response
 
 def upload_to_github(png_file):  
-    GITHUB_TOKEN = os.environ['GITHUB_TOKEN']
+    
+    # add token to url
+    output = subprocess.check_output(['git', 'remote', 'set-url', f'--push', 'origin', 'https://skjerns:{GITHUB_TOKEN}@github.com/skjerns/Speiseplan-To-Rocket-Chat'])
+    print('\n\ngit remote', output.decode())
     
     # Add files to git
-    subprocess.run(['git', 'remote', f'set-url --push origin https://skjerns:{GITHUB_TOKEN}@github.com/skjerns/Speiseplan-To-Rocket-Chat'])
-
-    subprocess.run(['git', 'add', './speiseplaene/*'], check=True)
+    output = subprocess.check_output(['git', 'add', './speiseplaene/*'])
+    print('\n\ngit add', output.decode())
+    
     # Commit changes
-    subprocess.run(['git', 'commit', '-m', 'Add recent speiseplan'], check=True)
+    try:
+        output = subprocess.check_output(['git', 'commit', '-m', 'Add recent speiseplan'], stderr=STDOUT)
+    except subprocess.CalledProcessError as e:
+        print(e.output.decode())
+        raise e
+     
     # Push changes
     subprocess.run(['git', 'push'], check=True)
     
