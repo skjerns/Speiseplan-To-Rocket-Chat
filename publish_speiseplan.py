@@ -15,6 +15,8 @@ import numpy as np
 import datetime
 import imgbbpy
 import socket
+import time
+import subprocess
 from pprint import pprint
 from rocketchat_API.rocketchat import RocketChat
 from functools import cache
@@ -339,7 +341,21 @@ def send_cmd(cmd, sock):
     response = sock.recv(4096).decode()
     return response
 
-def get_github_url(png_file):
+def upload_to_github(png_file):  
+    GITHUB_TOKEN = os.environ['GITHUB_TOKEN']
+    
+    # Add files to git
+    subprocess.run(['git', 'remote', f'set-url --push origin https://your_username:{GITHUB_TOKEN}@github.com/skjerns/Speiseplan-To-Rocket-Chat'])
+
+    subprocess.run(['git', 'add', './speiseplaene/*'], check=True)
+    # Commit changes
+    subprocess.run(['git', 'commit', '-m', 'Add recent speiseplan'], check=True)
+    # Push changes
+    subprocess.run(['git', 'push'], check=True)
+    
+    # give time to github to sort everything out
+    time.sleep(1)
+    
     base_url = 'https://raw.githubusercontent.com/skjerns/Speiseplan-To-Rocket-Chat/main/speiseplaene'
     return f'{base_url}/{os.path.basename(png_file)}'
 

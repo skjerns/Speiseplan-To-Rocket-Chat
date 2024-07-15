@@ -31,17 +31,9 @@ jobs:
           ROCKETCHAT_TOKEN: ${{ secrets.ROCKETCHAT_TOKEN }}
           ROCKETCHAT_URL: ${{ secrets.ROCKETCHAT_URL }}
           IMGBB_KEY: ${{ secrets.IMGBB_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configure Git
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-
-
-      - name: Commit and push PNG
-        run: |
-          git add ./speiseplaene/*
-          git commit -m 'Add recent speiseplan'
-          git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
