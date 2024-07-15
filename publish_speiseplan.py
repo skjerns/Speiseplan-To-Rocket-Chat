@@ -345,7 +345,7 @@ def upload_to_github(png_file):
     GITHUB_TOKEN = os.environ['GITHUB_TOKEN']
     
     # Add files to git
-    subprocess.run(['git', 'remote', f'set-url --push origin https://your_username:{GITHUB_TOKEN}@github.com/skjerns/Speiseplan-To-Rocket-Chat'])
+    subprocess.run(['git', 'remote', f'set-url --push origin https://skjerns:{GITHUB_TOKEN}@github.com/skjerns/Speiseplan-To-Rocket-Chat'])
 
     subprocess.run(['git', 'add', './speiseplaene/*'], check=True)
     # Commit changes
