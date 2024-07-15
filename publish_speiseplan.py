@@ -34,10 +34,7 @@ except:
     ROCKETCHAT_ID = os.environ['ROCKETCHAT_ID']
     ROCKETCHAT_TOKEN = os.environ['ROCKETCHAT_TOKEN']
 
-    IMGBB_KEY = os.environ['IMGBB_KEY']
-    FTP_URL = os.environ['FTP_URL']
-    FTP_USER = os.environ['FTP_USER']
-    FTP_PASS = os.environ['FTP_PASS']
+    # IMGBB_KEY = os.environ['IMGBB_KEY']
     GITHUB_TOKEN = os.environ['GITHUB_TOKEN']
 
 
