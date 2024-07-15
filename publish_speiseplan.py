@@ -440,7 +440,6 @@ def upload_file_ftp_sh(local_file_path):
 def post_speiseplan_image_to_rocket_chat(url):
     assert ROCKETCHAT_URL, 'ROCKETCHAT_URL missing'
     assert ROCKETCHAT_ID and ROCKETCHAT_TOKEN, 'ID or TOKEN missing'
-    assert IMGBB_KEY, 'IMGBB_KEY missing'
     rocket = RocketChat(user_id=ROCKETCHAT_ID,
                         auth_token=ROCKETCHAT_TOKEN,
                         server_url=f'https://{ROCKETCHAT_URL}')
