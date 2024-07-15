@@ -342,9 +342,17 @@ def send_cmd(cmd, sock):
     return response
 
 def upload_to_github(png_file):  
-    
+    "git config --global user.name 'github-actions[bot]'".split()
+    "git config --global user.email 'github-actions[bot]@users.noreply.github.com'".split()
+
+    output = subprocess.check_output(['git', 'config', '--global', 'user.name', "'github-actions[bot]'"])
+    print('\n\ngit config name', output.decode())
+
+    output = subprocess.check_output(['git', 'config', '--global', 'user.email', "'github-actions[bot]@users.noreply.github.com'"])
+    print('\n\ngit config email', output.decode())
+
     # add token to url
-    output = subprocess.check_output(['git', 'remote', 'set-url', f'--push', 'origin', f'https://skjerns:{GITHUB_TOKEN}@github.com/skjerns/Speiseplan-To-Rocket-Chat'])
+    output = subprocess.check_output(['git', 'remote', 'set-url', '--push', 'origin', f'https://skjerns:{GITHUB_TOKEN}@github.com/skjerns/Speiseplan-To-Rocket-Chat'])
     print('\n\ngit remote', output.decode())
     
     # Add files to git

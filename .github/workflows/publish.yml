@@ -32,8 +32,3 @@ jobs:
           ROCKETCHAT_URL: ${{ secrets.ROCKETCHAT_URL }}
           IMGBB_KEY: ${{ secrets.IMGBB_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Configure Git
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
