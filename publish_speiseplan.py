@@ -24,12 +24,10 @@ from PIL import Image
 from subprocess import check_output, STDOUT, CalledProcessError
 
 try:
-    from env import *
+    from env import INTRA_URL, ROCKETCHAT_URL, ROCKETCHAT_ID, ROCKETCHAT_TOKEN
+    from env import GITHUB_TOKEN
 except:
     INTRA_URL = os.environ['INTRA_URL']
-    INTRA_USER = os.environ['INTRA_USER']
-    INTRA_PASS = os.environ['INTRA_PASS']
-
     ROCKETCHAT_URL = os.environ['ROCKETCHAT_URL']
     ROCKETCHAT_ID = os.environ['ROCKETCHAT_ID']
     ROCKETCHAT_TOKEN = os.environ['ROCKETCHAT_TOKEN']
@@ -74,33 +72,10 @@ def get_current_speiseplan_url():
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
         }
 
-    logindata = {
-        '__referrer[@extension]': 'Felogin',
-        '__referrer[@controller]': 'Login',
-        '__referrer[@action]': 'login',
-        '__referrer[arguments]': 'YTowOnt9c82d6f44b8d0aa36e33546bc21692ef52ab8c9a7',
-        '__referrer[@request]': '{"@extension":"Felogin","@controller":"Login","@action":"login"}3114811a4666319daaddd2295a089fc35d1f932c',
-        '__trustedProperties': '{"user":1,"pass":1,"submit":1,"logintype":1,"pid":1}846697f7fef81d94ede603f45978ce8f3d2a55d3',
-        'user': INTRA_USER,
-        'pass': INTRA_PASS,
-        'submit': 'Anmelden',
-        'logintype': 'login',
-        'pid': '2@f21d4061d06b7761f48ff3d692a191ed496bb068',
-    }
 
-    print('url_intra is', INTRA_URL)
-
-    login_response = requests.post(f'https://{INTRA_URL}/', headers=headers,
-                                   data=logindata)
-
-    # login successful? keep cookies to show we are logged in
-    assert login_response.ok
-    cookies = login_response.cookies
-    assert len(cookies)>0, 'no cookies, password wrong?'
-    glob['cookies'] = cookies
     # retrieve current speiseplan
     speiseplan_response = requests.get(f'https://{INTRA_URL}/zi/cafeteria',
-                            cookies=cookies, headers=headers, data=logindata)
+                                       headers=headers)
     assert speiseplan_response.ok
 
     # extract link to PDF of current speiseplan
@@ -172,7 +147,7 @@ def extract_table_camelot(thisweek_url):
 
 
 def extract_image(thisweek_url):
-    response = requests.get(thisweek_url, cookies=glob['cookies'])
+    response = requests.get(thisweek_url)
     assert response.ok
     import fitz # pip install pymupdf
     f = BytesIO(response.content)
@@ -341,7 +316,7 @@ def send_cmd(cmd, sock):
     response = sock.recv(4096).decode()
     return response
 
-def upload_to_github(png_file):  
+def upload_to_github(png_file):
     "git config --global user.name 'github-actions[bot]'".split()
     "git config --global user.email 'github-actions[bot]@users.noreply.github.com'".split()
 
@@ -354,24 +329,26 @@ def upload_to_github(png_file):
     # add token to url
     output = subprocess.check_output(['git', 'remote', 'set-url', '--push', 'origin', f'https://skjerns:{GITHUB_TOKEN}@github.com/skjerns/Speiseplan-To-Rocket-Chat'])
     print('\n\ngit remote', output.decode())
-    
+
     # Add files to git
     output = subprocess.check_output(['git', 'add', './speiseplaene/*'])
     print('\n\ngit add', output.decode())
-    
+
     # Commit changes
     try:
         output = subprocess.check_output(['git', 'commit', '-m', 'Add recent speiseplan'], stderr=STDOUT)
     except subprocess.CalledProcessError as e:
-        print(e.output.decode())
-        raise e
-     
+        msg = e.output.decode()
+        print(msg)
+        if not 'Changes not staged for commit' in msg:
+            raise e
+
     # Push changes
     subprocess.run(['git', 'push'], check=True)
-    
+
     # give time to github to sort everything out
     time.sleep(1)
-    
+
     base_url = 'https://raw.githubusercontent.com/skjerns/Speiseplan-To-Rocket-Chat/main/speiseplaene'
     return f'{base_url}/{os.path.basename(png_file)}'
 
@@ -451,7 +428,7 @@ def post_speiseplan_image_to_rocket_chat(url):
                                     # previewUrls=[url]
                          )
     print(f'posting to rocket.chat: {res}\n\n{res.content.decode()}')
-    
+
 
 # def test_ftp():
 #     # first check public ftp
