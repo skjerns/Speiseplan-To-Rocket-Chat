@@ -340,7 +340,7 @@ def upload_to_github(png_file):
     except subprocess.CalledProcessError as e:
         msg = e.output.decode()
         print(msg)
-        if not 'Changes not staged for commit' in msg:
+        if not 'Changes not staged for commit' in msg and not 'Your branch is up to date with' in msg:
             raise e
 
     # Push changes
