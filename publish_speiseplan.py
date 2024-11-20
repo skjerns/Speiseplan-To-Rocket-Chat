@@ -327,7 +327,7 @@ def upload_to_github(png_file):
     print('\n\ngit config email', output.decode())
 
     # add token to url
-    output = subprocess.check_output(['git', 'remote', 'set-url', '--push', 'origin', f'https://skjerns:{GITHUB_TOKEN}@github.com/skjerns/Speiseplan-To-Rocket-Chat'])
+    output = subprocess.check_output(['git', 'remote', 'set-url', '--push', 'origin', f'https://{GITHUB_TOKEN}@github.com/skjerns/Speiseplan-To-Rocket-Chat'])
     print('\n\ngit remote', output.decode())
 
     # Add files to git
