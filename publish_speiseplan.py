@@ -86,6 +86,7 @@ def get_current_speiseplan_url():
     pdfs = [link.attrs['href'] for link in links if link.attrs['href'].endswith('pdf')]
     pdfs_cafeteria = [pdf for pdf in pdfs if 'caf' in pdf.lower()]
     assert len(pdfs_cafeteria), 'no cafeteria speiseplaene found'
+    pdfs_cafeteria = sorted(pdfs_cafeteria, key=lambda x: 'speiseplan'  in x.lower())
 
     finddate = lambda x: re.findall(r'\d+[.]\d+[.]\d+', x, re.IGNORECASE)
     startingdates = [finddate(pdf.split('/')[-1]) for pdf in pdfs_cafeteria]
