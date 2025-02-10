@@ -84,8 +84,12 @@ def get_current_speiseplan_url():
     # first item is for wards, second one is for cafeteria
     links = soup.findAll(href=True)
     pdfs = [link.attrs['href'] for link in links if link.attrs['href'].endswith('pdf')]
-    pdfs_cafeteria = [pdf for pdf in pdfs if 'caf' in pdf.lower()]
-    assert len(pdfs_cafeteria), 'no cafeteria speiseplaene found'
+    pdfs = [pdf for pdf in pdfs if 'caf' in pdf.lower()]
+    pdfs = [pdf for pdf in pdfs if not '/preisliste' in pdf.lower()]
+    pdfs = [pdf for pdf in pdfs if not 'wichtigsten-bestuhlungsarten' in pdf.lower()]
+
+    assert len(pdfs), 'no cafeteria speiseplaene found'
+    pdfs_cafeteria = sorted(pdfs, key=lambda x: 'speiseplan' in x.lower())
 
     finddate = lambda x: re.findall(r'\d+[.]\d+[.]\d+', x, re.IGNORECASE)
     startingdates = [finddate(pdf.split('/')[-1]) for pdf in pdfs_cafeteria]
@@ -260,8 +264,6 @@ def clean(word):
     tmp = word.replace(';', '')
     if tmp.isupper() or tmp.isnumeric(): return ''
     return word
-
-#%%
 
 
 def post_speiseplan_ascii_to_rocket_chat(speiseplan):
@@ -440,7 +442,7 @@ def post_speiseplan_image_to_rocket_chat(url):
 #     ftp = ftplib.FTP_TLS(FTP_URL)
 #     ftp.login(FTP_USER, FTP_PASS)
 #     ftp.quit()
-
+#%% main
 if __name__=='__main__':
     # test_ftp()
 
