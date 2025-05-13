@@ -424,7 +424,7 @@ def post_speiseplan_image_to_rocket_chat(url):
                         server_url=f'https://{ROCKETCHAT_URL}')
 
     now = datetime.datetime.now().strftime('%d. %b %Y')
-    res = rocket.chat_post_message(f'Woche startet am {now}.\nAuf den Plan klicken um Details zu sehen.',
+    res = rocket.chat_post_message(f'Week start: {now}.\n{url}',
                                    channel='Speiseplan',
                                    emoji='robot'
                                    # alias='SpeiseplanBot',

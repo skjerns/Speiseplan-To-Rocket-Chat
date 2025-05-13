@@ -193,14 +193,14 @@ def post_to_rocket_chat(urls):
         parsed_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         german_weekday = tage[parsed_date.weekday()]
 
-        names = ['Fleisch/Fisch', 'Veggy']
+        names = ['Meat/Fish', 'Veggy']
         msg = (f'**{german_weekday} {i+1}**\t- {names[i]} - {parsed_date.strftime("%d. %b")}. '
-              f'\nBenutze die Emojis um zu bewerten.\n\n{url}')
+              f'\nUse the emojis to rate the food.\n\n{url}')
 
         time.sleep(1)
         res = rocket.chat_post_message(msg,
                                        emoji=[':cut_of_meat:', ':leafy_green:'][i],
-                                       channel='Speiseplan-feedback',
+                                       channel='Cafeteria-feedback',
                                        # alias='SpeiseplanBot',
                                        # previewUrls=[url]
                                        )
