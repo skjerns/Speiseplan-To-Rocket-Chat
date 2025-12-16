@@ -13,7 +13,7 @@ import bs4
 from io import BytesIO
 import numpy as np
 import datetime
-import imgbbpy
+#import imgbbpy
 import socket
 import time
 import subprocess
@@ -85,8 +85,8 @@ def get_current_speiseplan_url():
     links = soup.findAll(href=True)
     pdfs = [link.attrs['href'] for link in links if link.attrs['href'].endswith('pdf')]
     pdfs = [pdf for pdf in pdfs if 'caf' in pdf.lower()]
-    pdfs = [pdf for pdf in pdfs if not '/preisliste' in pdf.lower()]
-    pdfs = [pdf for pdf in pdfs if not 'wichtigsten-bestuhlungsarten' in pdf.lower()]
+    for keyword in ['/preisliste' , 'bestuhlungsarten', 'lmiv' ]:
+        pdfs = [pdf for pdf in pdfs if not keyword in pdf.lower()]
 
     assert len(pdfs), 'no cafeteria speiseplaene found'
     pdfs_cafeteria = sorted(pdfs, key=lambda x: 'speiseplan' in x.lower())
