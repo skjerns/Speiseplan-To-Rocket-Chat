@@ -5,6 +5,7 @@ rocketchat_API
 pymupdf
 imgbbpy
 pillow
+google-generativeai
 
 # outdated requiremtents
 # camelot-py[base]
