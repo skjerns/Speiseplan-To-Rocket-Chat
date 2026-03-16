@@ -22,10 +22,13 @@ from rocketchat_API.rocketchat import RocketChat
 from functools import cache
 from PIL import Image
 from subprocess import check_output, STDOUT, CalledProcessError
+import google.generativeai as genai
+from datetime import timedelta
+
 
 try:
     from env import INTRA_URL, ROCKETCHAT_URL, ROCKETCHAT_ID, ROCKETCHAT_TOKEN
-    from env import GITHUB_TOKEN
+    from env import GITHUB_TOKEN, GOOGLE_API_KEY
 except:
     INTRA_URL = os.environ['INTRA_URL']
     ROCKETCHAT_URL = os.environ['ROCKETCHAT_URL']
@@ -34,8 +37,15 @@ except:
 
     # IMGBB_KEY = os.environ['IMGBB_KEY']
     GITHUB_TOKEN = os.environ['GITHUB_TOKEN']
+    GOOGLE_API_KEY = os.environ['GOOGLE_API_KEY']
 
 
+def get_modified_age(uri):
+    res = requests.head(f"https://{INTRA_URL}/{uri}")
+    datestring = res.headers['last-modified']
+    modified = datetime.datetime.strptime(datestring, '%a, %d %b %Y %H:%M:%S %Z')
+    today = datetime.datetime.now()
+    return today - modified
 
 def parse_date(string):
     formats = ['%d.%m.%Y', '%d.%m.%y']
@@ -45,6 +55,26 @@ def parse_date(string):
         except:
             print(f'{string} did not match {fmt}')
     raise ValueError(f'{string} did not match any formats: {formats}')
+
+
+def get_current_menu_pdf_gemini(pdfs):
+    # Calculate current week boundaries
+    today = datetime.datetime.now()
+    monday = today - timedelta(days=today.weekday())
+    friday = monday + timedelta(days=4)
+    week_str = f"{monday.strftime('%d.%m.%Y')} to {friday.strftime('%d.%m.%Y')}"
+
+    genai.configure(api_key=GOOGLE_API_KEY)
+    model = genai.GenerativeModel("gemini-2.5-flash")
+
+    prompt = (
+        f"Current week is {week_str}. Which PDF from this list is the most likely "
+        f"cafeteria menu for this week? Return only the exact filename: {pdfs}"
+    )
+
+    response = model.generate_content(prompt)
+    return response.text.strip()
+
 
 glob = {}
 
@@ -81,34 +111,43 @@ def get_current_speiseplan_url():
     # extract link to PDF of current speiseplan
     html = speiseplan_response.content.decode()
     soup = bs4.BeautifulSoup(html)
-    # first item is for wards, second one is for cafeteria
     links = soup.findAll(href=True)
     pdfs = [link.attrs['href'] for link in links if link.attrs['href'].endswith('pdf')]
-    pdfs = [pdf for pdf in pdfs if 'caf' in pdf.lower()]
-    for keyword in ['/preisliste' , 'bestuhlungsarten', 'lmiv' ]:
-        pdfs = [pdf for pdf in pdfs if not keyword in pdf.lower()]
 
-    assert len(pdfs), 'no cafeteria speiseplaene found'
-    pdfs_cafeteria = sorted(pdfs, key=lambda x: 'speiseplan' in x.lower())
+    # filter all pdfs older than 2 weeks
+    pdfs = [pdf for pdf in pdfs if get_modified_age(pdf).days<7]
 
-    finddate = lambda x: re.findall(r'\d+[.]\d+[.]\d+', x, re.IGNORECASE)
-    startingdates = [finddate(pdf.split('/')[-1]) for pdf in pdfs_cafeteria]
-    startingdates = [['01.06.2000', '06.06.2000'] if dates==[] else dates for dates in startingdates ]
-    startingdates = [parse_date(date[0]) for date in startingdates]
-
-    weeks = [date.isocalendar().week for date in startingdates]
-    thisweek = datetime.datetime.now().isocalendar().week
-
-    if thisweek in weeks:
-        pdf_url = pdfs_cafeteria[weeks.index(thisweek)]
+    if len(pdfs)>2:
+        thisweek = get_current_menu_pdf_gemini(pdfs)
     else:
-        try:
-            pdf_url = pdfs_cafeteria[-1].attrs['href']
-        except AttributeError:
-            pdf_url = pdfs_cafeteria[-1]
+        thisweek = pdfs[0]
+
+    # pdfs = [pdf for pdf in pdfs if  any([c.isnumeric() for c in pdf])]
+    # pdfs = [pdf for pdf in pdfs if 'caf' in pdf.lower()]
+    # for keyword in ['/preisliste' , 'bestuhlungsarten', 'lmiv' ]:
+    #     pdfs = [pdf for pdf in pdfs if not keyword in pdf.lower()]
+
+    # assert len(pdfs), 'no cafeteria speiseplaene found'
+    # pdfs_cafeteria = sorted(pdfs, key=lambda x: 'speiseplan' in x.lower())
+
+    # finddate = lambda x: re.findall(r'\d+[.]\d+[.]\d+', x, re.IGNORECASE)
+    # startingdates = [finddate(pdf.split('/')[-1]) for pdf in pdfs_cafeteria]
+    # startingdates = [['01.06.2000', '06.06.2000'] if dates==[] else dates for dates in startingdates ]
+    # startingdates = [parse_date(date[0]) for date in startingdates]
+
+    # # weeks = [date.isocalendar().week for date in startingdates]
+    # thisweek = datetime.datetime.now().isocalendar().week
+
+    # if thisweek in weeks:
+    #     pdf_url = pdfs_cafeteria[weeks.index(thisweek)]
+    # else:
+    #     try:
+    #         pdf_url = pdfs_cafeteria[-1].attrs['href']
+    #     except AttributeError:
+    #         pdf_url = pdfs_cafeteria[-1]
 
     # download PDF
-    thisweek_url = f'https://{INTRA_URL}/{pdf_url}'
+    thisweek_url = f'https://{INTRA_URL}/{thisweek}'
     return thisweek_url
 
 
@@ -306,11 +345,6 @@ def post_speiseplan_ascii_to_rocket_chat(speiseplan):
     res = rocket.chat_post_message(f'```\n{table}\n```', channel='Speiseplan')
     print(f'posting to rocket.chat: {res}\n\n{res.content.decode()}')
     return table
-
-def upload_to_imagebb(speiseplan_png):
-    imgbb_client = imgbbpy.SyncClient(IMGBB_KEY)
-    upload = imgbb_client.upload(file=speiseplan_png, expiration=60*60*24*31)
-    return upload.url
 
 
 def send_cmd(cmd, sock):
