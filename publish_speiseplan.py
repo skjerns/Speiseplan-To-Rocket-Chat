@@ -33,6 +33,17 @@ import pytesseract
 TELEGRAM_CONF = os.path.expanduser('~/.config/telegram-send.conf')
 
 
+def telegram_send(message):
+    """Send a message via telegram-send."""
+    result = subprocess.run(
+        ['telegram-send', '--format', 'html',
+         '--config', TELEGRAM_CONF, message],
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        logging.error(f'telegram-send failed: {result.stderr}')
+
+
 def telegram_on_error(func):
     """Decorator that sends a telegram notification on unhandled exceptions."""
     @wraps(func)
@@ -45,14 +56,7 @@ def telegram_on_error(func):
             header = html.escape(f'Speiseplan exception in {func.__name__}: '
                                  f'{type(e).__name__}: {e}')
             tb_escaped = html.escape(tb)
-            message = f'{header}\n\n<pre>{tb_escaped}</pre>'
-            result = subprocess.run(
-                ['telegram-send', '--format', 'html',
-                 '--config', TELEGRAM_CONF, message],
-                capture_output=True, text=True
-            )
-            if result.returncode != 0:
-                logging.error(f'telegram-send failed: {result.stderr}')
+            telegram_send(f'{header}\n\n<pre>{tb_escaped}</pre>')
             raise
     return wrapper
 
@@ -262,22 +266,28 @@ def verify_image(png_file):
 
     # find all dates in dd.mm.yyyy format
     dates_found = re.findall(r'\d{2}\.\d{2}\.\d{4}', text)
-    if not dates_found:
-        print(f'verify_image: WARN – no dates found via OCR')
-        return False
-
-    # parse the first date (start of week on the speiseplan)
-    speiseplan_start = datetime.datetime.strptime(dates_found[0], '%d.%m.%Y')
 
     # the expected monday: monday of the current week
     today = datetime.datetime.now()
     expected_monday = today - timedelta(days=today.weekday())
     expected_monday = expected_monday.replace(hour=0, minute=0, second=0, microsecond=0)
+    expected_str = expected_monday.strftime('%d.%m.%Y')
+
+    if not dates_found:
+        msg = f'Speiseplan sanity check failed: no dates found via OCR (expected {expected_str})'
+        print(f'verify_image: WARN – {msg}')
+        telegram_send(html.escape(msg))
+        return False
+
+    # parse the first date (start of week on the speiseplan)
+    speiseplan_start = datetime.datetime.strptime(dates_found[0], '%d.%m.%Y')
 
     diff = abs((speiseplan_start - expected_monday).days)
     if diff > 2:
-        print(f'verify_image: WARN – date mismatch: found {speiseplan_start.strftime("%d.%m.%Y")}, '
-              f'expected {expected_monday.strftime("%d.%m.%Y")} (diff={diff}d)')
+        msg = (f'Speiseplan sanity check failed: found {dates_found[0]}, '
+               f'expected {expected_str} (diff={diff}d)')
+        print(f'verify_image: WARN – {msg}')
+        telegram_send(html.escape(msg))
         return False
 
     print(f'verify_image: OK – speiseplan date {speiseplan_start.strftime("%d.%m.%Y")} '
