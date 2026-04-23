@@ -17,6 +17,10 @@ import datetime
 import socket
 import time
 import subprocess
+import traceback
+import logging
+import html
+from functools import wraps
 from pprint import pprint
 from rocketchat_API.rocketchat import RocketChat
 from functools import cache
@@ -24,6 +28,33 @@ from PIL import Image
 from subprocess import check_output, STDOUT, CalledProcessError
 import google.generativeai as genai
 from datetime import timedelta
+import pytesseract
+
+TELEGRAM_CONF = os.path.expanduser('~/.config/telegram-send.conf')
+
+
+def telegram_on_error(func):
+    """Decorator that sends a telegram notification on unhandled exceptions."""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            tb = traceback.format_exc()
+            logging.error(f'Unhandled exception in {func.__name__}: {e}\n{tb}')
+            header = html.escape(f'Speiseplan exception in {func.__name__}: '
+                                 f'{type(e).__name__}: {e}')
+            tb_escaped = html.escape(tb)
+            message = f'{header}\n\n<pre>{tb_escaped}</pre>'
+            result = subprocess.run(
+                ['telegram-send', '--format', 'html',
+                 '--config', TELEGRAM_CONF, message],
+                capture_output=True, text=True
+            )
+            if result.returncode != 0:
+                logging.error(f'telegram-send failed: {result.stderr}')
+            raise
+    return wrapper
 
 
 try:
@@ -79,6 +110,7 @@ def get_current_menu_pdf_gemini(pdfs):
 glob = {}
 
 @cache
+@telegram_on_error
 def get_current_speiseplan_url():
 
     headers = {
@@ -189,6 +221,7 @@ def extract_table_camelot(thisweek_url):
     return speiseplan
 
 
+@telegram_on_error
 def extract_image(thisweek_url):
     response = requests.get(thisweek_url)
     assert response.ok
@@ -209,6 +242,48 @@ def crop_image(png_file):
     cropped = image.crop([35, 223, 557, 775])
     cropped.paste(week, box=[150, 0])
     cropped.save(png_file)
+
+@telegram_on_error
+def verify_image(png_file):
+    """OCR the speiseplan image and check that the dates match the expected week.
+
+    The script runs every Monday, but may also run up to 2 days later
+    (Tuesday/Wednesday) in case of bank holidays. The start date found
+    in the image must match the Monday of the current week.
+
+    Returns True if verification passes, False otherwise.
+    """
+    image = Image.open(png_file)
+    # convert to grayscale and binarize: the date text is often light blue
+    # and hard for OCR to pick up without preprocessing
+    gray = image.convert('L')
+    binary = gray.point(lambda x: 0 if x < 190 else 255)
+    text = pytesseract.image_to_string(binary, lang='deu')
+
+    # find all dates in dd.mm.yyyy format
+    dates_found = re.findall(r'\d{2}\.\d{2}\.\d{4}', text)
+    if not dates_found:
+        print(f'verify_image: WARN – no dates found via OCR')
+        return False
+
+    # parse the first date (start of week on the speiseplan)
+    speiseplan_start = datetime.datetime.strptime(dates_found[0], '%d.%m.%Y')
+
+    # the expected monday: monday of the current week
+    today = datetime.datetime.now()
+    expected_monday = today - timedelta(days=today.weekday())
+    expected_monday = expected_monday.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    diff = abs((speiseplan_start - expected_monday).days)
+    if diff > 2:
+        print(f'verify_image: WARN – date mismatch: found {speiseplan_start.strftime("%d.%m.%Y")}, '
+              f'expected {expected_monday.strftime("%d.%m.%Y")} (diff={diff}d)')
+        return False
+
+    print(f'verify_image: OK – speiseplan date {speiseplan_start.strftime("%d.%m.%Y")} '
+          f'matches expected week {expected_monday.strftime("%d.%m.%Y")} (diff={diff}d)')
+    return True
+
 
 def extract_table_tabula(thisweek_url):
     import tabula # pip install tabula-py
@@ -352,6 +427,7 @@ def send_cmd(cmd, sock):
     response = sock.recv(4096).decode()
     return response
 
+@telegram_on_error
 def upload_to_github(png_file):
     "git config --global user.name 'github-actions[bot]'".split()
     "git config --global user.email 'github-actions[bot]@users.noreply.github.com'".split()
@@ -450,15 +526,23 @@ def upload_file_ftp_sh(local_file_path):
         print("Error:", e)
     return  f'https://{FTP_URL}/speiseplan/{local_file_path}'
 
-def post_speiseplan_image_to_rocket_chat(url):
+@telegram_on_error
+def post_speiseplan_image_to_rocket_chat(url, verified=True):
     assert ROCKETCHAT_URL, 'ROCKETCHAT_URL missing'
     assert ROCKETCHAT_ID and ROCKETCHAT_TOKEN, 'ID or TOKEN missing'
     rocket = RocketChat(user_id=ROCKETCHAT_ID,
                         auth_token=ROCKETCHAT_TOKEN,
                         server_url=f'https://{ROCKETCHAT_URL}')
 
-    now = datetime.datetime.now().strftime('%d. %b %Y')
-    res = rocket.chat_post_message(f'Week start: {now}.\n{url}',
+    now = datetime.datetime.now()
+    expected_monday = now - timedelta(days=now.weekday())
+    now_str = now.strftime('%d. %b %Y')
+    msg = f'Week start: {now_str}.\n{url}'
+    if not verified:
+        expected_date = expected_monday.strftime('%d.%m.%Y')
+        msg += (f'\n\nThere might be an error, could not find {expected_date} '
+                f'in the table. Please check manually if this is the correct Speiseplan.')
+    res = rocket.chat_post_message(msg,
                                    channel='Speiseplan',
                                    emoji='robot'
                                    # alias='SpeiseplanBot',
@@ -467,16 +551,6 @@ def post_speiseplan_image_to_rocket_chat(url):
     print(f'posting to rocket.chat: {res}\n\n{res.content.decode()}')
 
 
-# def test_ftp():
-#     # first check public ftp
-#     ftp = ftplib.FTP_TLS('test.rebex.net')
-#     ftp.login('demo', 'password')
-#     ftp.quit()
-
-#     # then check our own works
-#     ftp = ftplib.FTP_TLS(FTP_URL)
-#     ftp.login(FTP_USER, FTP_PASS)
-#     ftp.quit()
 #%% main
 if __name__=='__main__':
     # test_ftp()
@@ -484,8 +558,9 @@ if __name__=='__main__':
     thisweek_url = get_current_speiseplan_url()
     png_file = extract_image(thisweek_url)
     # crop_image(png_file)
+    verified = verify_image(png_file)
     url = upload_to_github(png_file)
     # url = upload_to_imagebb(png_file)
     # url = upload_file_ftp_sh(png_file)
     # url = upload_file_ftp(png_file)
-    post_speiseplan_image_to_rocket_chat(url)
+    post_speiseplan_image_to_rocket_chat(url, verified=verified)
