@@ -6,6 +6,9 @@ pymupdf
 imgbbpy
 pillow
 google-generativeai
+rapidocr_onnxruntime
+rapidocr 
+onnxruntime
 
 # outdated requiremtents
 # camelot-py[base]

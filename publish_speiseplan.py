@@ -28,7 +28,7 @@ from PIL import Image
 from subprocess import check_output, STDOUT, CalledProcessError
 import google.generativeai as genai
 from datetime import timedelta
-import pytesseract
+from rapidocr_onnxruntime import RapidOCR
 
 TELEGRAM_CONF = os.path.expanduser('~/.config/telegram-send.conf')
 
@@ -151,7 +151,7 @@ def get_current_speiseplan_url():
     pdfs = [link.attrs['href'] for link in links if link.attrs['href'].endswith('pdf')]
 
     # filter all pdfs older than 2 weeks
-    pdfs = [pdf for pdf in pdfs if get_modified_age(pdf).days<7]
+    pdfs = [pdf for pdf in pdfs if get_modified_age(pdf).days<14]
 
     if len(pdfs)>2:
         thisweek = get_current_menu_pdf_gemini(pdfs)
@@ -262,7 +262,9 @@ def verify_image(png_file):
     # and hard for OCR to pick up without preprocessing
     gray = image.convert('L')
     binary = gray.point(lambda x: 0 if x < 190 else 255)
-    text = pytesseract.image_to_string(binary, lang='deu')
+    ocr = RapidOCR()
+    result, _ = ocr(np.array(binary))
+    text = ' '.join([line[1] for line in result]) if result else ''
 
     # find all dates in dd.mm.yyyy format
     dates_found = re.findall(r'\d{2}\.\d{2}\.\d{4}', text)
@@ -560,11 +562,13 @@ def post_speiseplan_image_to_rocket_chat(url, verified=True):
                          )
     print(f'posting to rocket.chat: {res}\n\n{res.content.decode()}')
 
+@telegram_on_error
+def test():
+    raise Exception
 
 #%% main
 if __name__=='__main__':
-    # test_ftp()
-
+    #test()
     thisweek_url = get_current_speiseplan_url()
     png_file = extract_image(thisweek_url)
     # crop_image(png_file)
