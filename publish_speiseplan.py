@@ -548,8 +548,8 @@ def post_speiseplan_image_to_rocket_chat(url, verified=True):
 
     now = datetime.datetime.now()
     expected_monday = now - timedelta(days=now.weekday())
-    now_str = now.strftime('%d. %b %Y')
-    msg = f'Week start: {now_str}.\n{url}'
+    weekstart_str = expected_monday.strftime('%d. %b %Y')
+    msg = f'Week start: {weekstart_str}.\n{url}'
     if not verified:
         expected_date = expected_monday.strftime('%d.%m.%Y')
         msg += (f'\n\nThere might be an error, could not find {expected_date} '
