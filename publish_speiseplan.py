@@ -430,7 +430,7 @@ def post_speiseplan_ascii_to_rocket_chat(speiseplan):
     table = '\n'.join([x[:5] + x[9:] for x in table.split('\n')])
 
     res = rocket.chat_post_message(f'```\n{table}\n```', channel='Speiseplan')
-    print(f'posting to rocket.chat: {res}\n\n{res.content.decode()}')
+    print(f'posting to rocket.chat: {res}')
     return table
 
 
@@ -560,7 +560,7 @@ def post_speiseplan_image_to_rocket_chat(url, verified=True):
                                    # alias='SpeiseplanBot',
                                     # previewUrls=[url]
                          )
-    print(f'posting to rocket.chat: {res}\n\n{res.content.decode()}')
+    print(f'posting to rocket.chat: {res}')
 
 @telegram_on_error
 def test():
